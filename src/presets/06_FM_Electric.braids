@@ -1,0 +1,13 @@
+{
+  "name": "FM Electric",
+  "engine": "FM",
+  "timbre": 0.45,
+  "color": 0.55,
+  "attack": 0.0,
+  "decay": 0.5,
+  "fm": 0.0,
+  "cutoff": 1.0,
+  "resonance": 0.0,
+  "volume": 0.7,
+  "octave_transpose": 0
+}

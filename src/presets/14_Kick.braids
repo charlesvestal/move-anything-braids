@@ -1,0 +1,13 @@
+{
+  "name": "Kick",
+  "engine": "KICK",
+  "timbre": 0.5,
+  "color": 0.4,
+  "attack": 0.0,
+  "decay": 0.35,
+  "fm": 0.0,
+  "cutoff": 1.0,
+  "resonance": 0.0,
+  "volume": 0.85,
+  "octave_transpose": -1
+}

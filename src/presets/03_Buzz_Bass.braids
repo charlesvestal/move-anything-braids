@@ -1,0 +1,13 @@
+{
+  "name": "Buzz Bass",
+  "engine": "BUZZ",
+  "timbre": 0.3,
+  "color": 0.4,
+  "attack": 0.0,
+  "decay": 0.4,
+  "fm": 0.0,
+  "cutoff": 0.45,
+  "resonance": 0.2,
+  "volume": 0.8,
+  "octave_transpose": -1
+}

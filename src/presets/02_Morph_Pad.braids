@@ -1,0 +1,13 @@
+{
+  "name": "Morph Pad",
+  "engine": "MORPH",
+  "timbre": 0.4,
+  "color": 0.6,
+  "attack": 0.4,
+  "decay": 0.8,
+  "fm": 0.0,
+  "cutoff": 0.7,
+  "resonance": 0.15,
+  "volume": 0.7,
+  "octave_transpose": 0
+}
