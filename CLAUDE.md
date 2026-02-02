@@ -17,7 +17,7 @@ src/
       macro_oscillator  # Entry point - routes to analog/digital
       analog_oscillator # Classic waveforms
       digital_oscillator # FM, physical modeling, noise, etc.
-      envelope.h        # AR envelope
+      envelope.h        # AR envelope (unused - replaced by SimpleADSR in plugin)
       svf.h             # State variable filter
       resources         # Lookup tables
     stmlib/             # Mutable Instruments support library
@@ -30,10 +30,10 @@ src/
 ### Plugin API
 
 Implements Move Anything plugin_api_v2 (multi-instance):
-- `create_instance`: Initializes 4 voices, each with MacroOscillator + Envelope + SVF
+- `create_instance`: Initializes 4 voices, each with MacroOscillator + ADSR envelopes + SVF
 - `destroy_instance`: Cleanup
 - `on_midi`: Note on/off with voice allocation, pitch bend, mod wheel (FM)
-- `set_param`: engine, timbre, color, attack, decay, fm, cutoff, resonance, volume, octave_transpose
+- `set_param`: engine, timbre, color, attack, decay, sustain, release, fm, cutoff, resonance, filt_env, f_attack, f_decay, f_sustain, f_release, volume, octave_transpose
 - `get_param`: ui_hierarchy, chain_params, state serialization, engine_name
 - `render_block`: Renders 24-sample Braids blocks into 128-sample Move blocks
 
@@ -42,17 +42,24 @@ Implements Move Anything plugin_api_v2 (multi-instance):
 - `engine` (int 0-46): Synthesis algorithm (CSAW, MORPH, FM, PLUK, BELL, etc.)
 - `timbre` (float 0-1): Primary tone parameter
 - `color` (float 0-1): Secondary tone parameter
-- `attack` (float 0-1): Envelope attack time
-- `decay` (float 0-1): Envelope decay time
+- `attack` (float 0-1): Amp envelope attack time
+- `decay` (float 0-1): Amp envelope decay time
+- `sustain` (float 0-1): Amp envelope sustain level
+- `release` (float 0-1): Amp envelope release time
 - `fm` (float 0-1): FM amount (also controlled by mod wheel)
 - `cutoff` (float 0-1): SVF filter cutoff
 - `resonance` (float 0-1): SVF filter resonance
+- `filt_env` (float 0-1): Filter envelope modulation amount
+- `f_attack` (float 0-1): Filter envelope attack time
+- `f_decay` (float 0-1): Filter envelope decay time
+- `f_sustain` (float 0-1): Filter envelope sustain level
+- `f_release` (float 0-1): Filter envelope release time
 - `volume` (float 0-1): Output gain
 - `octave_transpose` (int -3 to +3): Octave shift
 
 ### Voice Management
 
-4-voice polyphonic with voice stealing (oldest voice). Each voice has independent MacroOscillator, AR Envelope, and SVF filter.
+4-voice polyphonic with voice stealing (oldest voice). Each voice has independent MacroOscillator, amplitude ADSR, filter ADSR, and SVF filter with per-sample envelope modulation.
 
 ### Sample Rate
 

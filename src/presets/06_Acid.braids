@@ -1,0 +1,20 @@
+{
+  "name": "Acid",
+  "engine": "SAW<",
+  "timbre": 0.8,
+  "color": 0.2,
+  "attack": 0.0,
+  "decay": 0.35,
+  "sustain": 0.0,
+  "release": 0.15,
+  "fm": 0.0,
+  "cutoff": 0.1,
+  "resonance": 0.7,
+  "filt_env": 0.8,
+  "f_attack": 0.0,
+  "f_decay": 0.2,
+  "f_sustain": 0.0,
+  "f_release": 0.1,
+  "volume": 0.7,
+  "octave_transpose": -1
+}

@@ -1,0 +1,20 @@
+{
+  "name": "Pad",
+  "engine": "SWARM",
+  "timbre": 0.5,
+  "color": 0.5,
+  "attack": 0.5,
+  "decay": 0.4,
+  "sustain": 0.8,
+  "release": 0.6,
+  "fm": 0.0,
+  "cutoff": 0.4,
+  "resonance": 0.1,
+  "filt_env": 0.4,
+  "f_attack": 0.5,
+  "f_decay": 0.5,
+  "f_sustain": 0.3,
+  "f_release": 0.6,
+  "volume": 0.7,
+  "octave_transpose": 0
+}

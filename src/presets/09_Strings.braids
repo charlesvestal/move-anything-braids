@@ -1,0 +1,20 @@
+{
+  "name": "Strings",
+  "engine": "BOWD",
+  "timbre": 0.5,
+  "color": 0.5,
+  "attack": 0.35,
+  "decay": 0.3,
+  "sustain": 0.9,
+  "release": 0.5,
+  "fm": 0.0,
+  "cutoff": 0.5,
+  "resonance": 0.05,
+  "filt_env": 0.3,
+  "f_attack": 0.3,
+  "f_decay": 0.3,
+  "f_sustain": 0.4,
+  "f_release": 0.5,
+  "volume": 0.7,
+  "octave_transpose": 0
+}

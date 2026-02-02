@@ -5,9 +5,16 @@
   "color": 0.5,
   "attack": 0.0,
   "decay": 0.5,
+  "sustain": 1.0,
+  "release": 0.3,
   "fm": 0.0,
   "cutoff": 1.0,
   "resonance": 0.0,
+  "filt_env": 0.0,
+  "f_attack": 0.0,
+  "f_decay": 0.3,
+  "f_sustain": 0.0,
+  "f_release": 0.3,
   "volume": 0.7,
   "octave_transpose": 0
 }

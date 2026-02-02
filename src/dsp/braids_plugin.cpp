@@ -78,6 +78,58 @@ typedef plugin_api_v2_t* (*move_plugin_init_v2_fn)(const host_api_v1_t *host);
  */
 #define ENV_RATE_SCALE (44100.0f / 96000.0f)
 
+/* =====================================================================
+ * Simple ADSR envelope - replaces Braids' AR-only envelope
+ * ===================================================================== */
+
+struct SimpleADSR {
+    enum Stage { IDLE, ATTACK, DECAY, SUSTAIN, RELEASE };
+    Stage stage;
+    float level;
+    float attack_rate, decay_rate, sustain_level, release_rate;
+
+    void init() { stage = IDLE; level = 0.0f; }
+
+    void set_params(float a, float d, float s, float r) {
+        auto time_to_rate = [](float p) -> float {
+            float t = 0.001f + p * p * 10.0f;
+            return 1.0f / (t * 44100.0f);
+        };
+        attack_rate = time_to_rate(a);
+        decay_rate = time_to_rate(d);
+        sustain_level = s;
+        release_rate = time_to_rate(r);
+    }
+
+    void gate_on() { stage = ATTACK; }
+    void gate_off() { if (stage != IDLE) stage = RELEASE; }
+    bool is_active() const { return stage != IDLE; }
+
+    float process() {
+        switch (stage) {
+            case ATTACK:
+                level += attack_rate;
+                if (level >= 1.0f) { level = 1.0f; stage = DECAY; }
+                break;
+            case DECAY:
+                level -= decay_rate;
+                if (level <= sustain_level) { level = sustain_level; stage = SUSTAIN; }
+                break;
+            case SUSTAIN:
+                level = sustain_level;
+                break;
+            case RELEASE:
+                level -= release_rate;
+                if (level <= 0.0f) { level = 0.0f; stage = IDLE; }
+                break;
+            case IDLE:
+                level = 0.0f;
+                break;
+        }
+        return level;
+    }
+};
+
 /* Shape names for display */
 static const char* g_shape_names[] = {
     "CSAW", "MORPH", "/\\-_", "SINE^",  "BUZZ",
@@ -112,9 +164,16 @@ enum BraidsParam {
     PARAM_COLOR,
     PARAM_ATTACK,
     PARAM_DECAY,
+    PARAM_SUSTAIN,
+    PARAM_RELEASE,
     PARAM_FM,
     PARAM_CUTOFF,
     PARAM_RESONANCE,
+    PARAM_FILT_ENV,
+    PARAM_F_ATTACK,
+    PARAM_F_DECAY,
+    PARAM_F_SUSTAIN,
+    PARAM_F_RELEASE,
     PARAM_VOLUME,
     PARAM_COUNT
 };
@@ -131,9 +190,16 @@ static const param_def_t g_shadow_params[] = {
     {"color",     "Color",     PARAM_TYPE_FLOAT, PARAM_COLOR,     0.0f, 1.0f},
     {"attack",    "Attack",    PARAM_TYPE_FLOAT, PARAM_ATTACK,    0.0f, 1.0f},
     {"decay",     "Decay",     PARAM_TYPE_FLOAT, PARAM_DECAY,     0.0f, 1.0f},
+    {"sustain",   "Sustain",   PARAM_TYPE_FLOAT, PARAM_SUSTAIN,   0.0f, 1.0f},
+    {"release",   "Release",   PARAM_TYPE_FLOAT, PARAM_RELEASE,   0.0f, 1.0f},
     {"fm",        "FM",        PARAM_TYPE_FLOAT, PARAM_FM,        0.0f, 1.0f},
     {"cutoff",    "Cutoff",    PARAM_TYPE_FLOAT, PARAM_CUTOFF,    0.0f, 1.0f},
     {"resonance", "Resonance", PARAM_TYPE_FLOAT, PARAM_RESONANCE, 0.0f, 1.0f},
+    {"filt_env",  "Filt Env",  PARAM_TYPE_FLOAT, PARAM_FILT_ENV,  0.0f, 1.0f},
+    {"f_attack",  "F.Attack",  PARAM_TYPE_FLOAT, PARAM_F_ATTACK,  0.0f, 1.0f},
+    {"f_decay",   "F.Decay",   PARAM_TYPE_FLOAT, PARAM_F_DECAY,   0.0f, 1.0f},
+    {"f_sustain", "F.Sustain", PARAM_TYPE_FLOAT, PARAM_F_SUSTAIN, 0.0f, 1.0f},
+    {"f_release", "F.Release", PARAM_TYPE_FLOAT, PARAM_F_RELEASE, 0.0f, 1.0f},
     {"volume",    "Volume",    PARAM_TYPE_FLOAT, PARAM_VOLUME,    0.0f, 1.0f},
 };
 
@@ -143,7 +209,8 @@ static const param_def_t g_shadow_params[] = {
 
 struct BraidsVoice {
     braids::MacroOscillator osc;
-    braids::Envelope envelope;
+    SimpleADSR amp_env;
+    SimpleADSR filt_env;
     braids::Svf svf;
     int16_t osc_buffer[BRAIDS_BLOCK_SIZE];
     uint8_t sync_buffer[BRAIDS_BLOCK_SIZE];
@@ -217,10 +284,15 @@ static int find_free_voice(braids_instance_t *inst) {
 }
 
 static int find_voice_for_note(braids_instance_t *inst, int note) {
+    /* Prefer gated voice (still held) over releasing voice */
+    int releasing = -1;
     for (int i = 0; i < MAX_VOICES; i++) {
-        if (inst->voices[i].active && inst->voices[i].note == note) return i;
+        if (inst->voices[i].active && inst->voices[i].note == note) {
+            if (inst->voices[i].gate) return i;
+            releasing = i;
+        }
     }
-    return -1;
+    return releasing;
 }
 
 /* =====================================================================
@@ -324,12 +396,26 @@ static int load_braids_preset(braids_instance_t *inst, const char *path) {
     else p->params[PARAM_ATTACK] = 0.0f;
     if (json_get_number(data, "decay", &fval) == 0) p->params[PARAM_DECAY] = fval;
     else p->params[PARAM_DECAY] = 0.5f;
+    if (json_get_number(data, "sustain", &fval) == 0) p->params[PARAM_SUSTAIN] = fval;
+    else p->params[PARAM_SUSTAIN] = 1.0f;
+    if (json_get_number(data, "release", &fval) == 0) p->params[PARAM_RELEASE] = fval;
+    else p->params[PARAM_RELEASE] = 0.3f;
     if (json_get_number(data, "fm", &fval) == 0) p->params[PARAM_FM] = fval;
     else p->params[PARAM_FM] = 0.0f;
     if (json_get_number(data, "cutoff", &fval) == 0) p->params[PARAM_CUTOFF] = fval;
     else p->params[PARAM_CUTOFF] = 1.0f;
     if (json_get_number(data, "resonance", &fval) == 0) p->params[PARAM_RESONANCE] = fval;
     else p->params[PARAM_RESONANCE] = 0.0f;
+    if (json_get_number(data, "filt_env", &fval) == 0) p->params[PARAM_FILT_ENV] = fval;
+    else p->params[PARAM_FILT_ENV] = 0.0f;
+    if (json_get_number(data, "f_attack", &fval) == 0) p->params[PARAM_F_ATTACK] = fval;
+    else p->params[PARAM_F_ATTACK] = 0.0f;
+    if (json_get_number(data, "f_decay", &fval) == 0) p->params[PARAM_F_DECAY] = fval;
+    else p->params[PARAM_F_DECAY] = 0.3f;
+    if (json_get_number(data, "f_sustain", &fval) == 0) p->params[PARAM_F_SUSTAIN] = fval;
+    else p->params[PARAM_F_SUSTAIN] = 0.0f;
+    if (json_get_number(data, "f_release", &fval) == 0) p->params[PARAM_F_RELEASE] = fval;
+    else p->params[PARAM_F_RELEASE] = 0.3f;
     if (json_get_number(data, "volume", &fval) == 0) p->params[PARAM_VOLUME] = fval;
     else p->params[PARAM_VOLUME] = 0.7f;
 
@@ -406,16 +492,21 @@ static void apply_params_to_voice(braids_instance_t *inst, BraidsVoice *v) {
     int16_t color = (int16_t)(inst->params[PARAM_COLOR] * 32767.0f);
     v->osc.set_parameters(timbre, color);
 
-    /* SVF filter */
-    int16_t cutoff_val = (int16_t)(inst->params[PARAM_CUTOFF] * 127.0f);
+    /* SVF filter resonance (cutoff set per-sample in render for envelope modulation) */
     int16_t reso_val = (int16_t)(inst->params[PARAM_RESONANCE] * 32767.0f);
-    v->svf.set_frequency(cutoff_val << 7);
     v->svf.set_resonance(reso_val);
 
-    /* Envelope (scaled for 44.1kHz - LUTs calibrated for 96kHz) */
-    int32_t attack = (int32_t)(inst->params[PARAM_ATTACK] * 127.0f);
-    int32_t decay = (int32_t)(inst->params[PARAM_DECAY] * 127.0f);
-    v->envelope.Update(attack, decay, ENV_RATE_SCALE);
+    /* ADSR envelopes */
+    v->amp_env.set_params(
+        inst->params[PARAM_ATTACK],
+        inst->params[PARAM_DECAY],
+        inst->params[PARAM_SUSTAIN],
+        inst->params[PARAM_RELEASE]);
+    v->filt_env.set_params(
+        inst->params[PARAM_F_ATTACK],
+        inst->params[PARAM_F_DECAY],
+        inst->params[PARAM_F_SUSTAIN],
+        inst->params[PARAM_F_RELEASE]);
 }
 
 /* v2 API: Create instance */
@@ -433,9 +524,16 @@ static void* v2_create_instance(const char *module_dir, const char *json_default
     inst->params[PARAM_COLOR] = 0.5f;
     inst->params[PARAM_ATTACK] = 0.0f;
     inst->params[PARAM_DECAY] = 0.5f;
+    inst->params[PARAM_SUSTAIN] = 1.0f;
+    inst->params[PARAM_RELEASE] = 0.3f;
     inst->params[PARAM_FM] = 0.0f;
     inst->params[PARAM_CUTOFF] = 1.0f;
     inst->params[PARAM_RESONANCE] = 0.0f;
+    inst->params[PARAM_FILT_ENV] = 0.0f;
+    inst->params[PARAM_F_ATTACK] = 0.0f;
+    inst->params[PARAM_F_DECAY] = 0.3f;
+    inst->params[PARAM_F_SUSTAIN] = 0.0f;
+    inst->params[PARAM_F_RELEASE] = 0.3f;
     inst->params[PARAM_VOLUME] = 0.7f;
     inst->octave_transpose = 0;
     inst->voice_counter = 0;
@@ -446,7 +544,8 @@ static void* v2_create_instance(const char *module_dir, const char *json_default
     /* Init all voices */
     for (int i = 0; i < MAX_VOICES; i++) {
         inst->voices[i].osc.Init();
-        inst->voices[i].envelope.Init();
+        inst->voices[i].amp_env.init();
+        inst->voices[i].filt_env.init();
         inst->voices[i].svf.Init();
         inst->voices[i].active = 0;
         inst->voices[i].gate = 0;
@@ -506,13 +605,15 @@ static void v2_on_midi(void *instance, const uint8_t *msg, int len, int source) 
                 v->osc.set_pitch(note_to_pitch(note));
                 apply_params_to_voice(inst, v);
                 v->osc.Strike();
-                v->envelope.Trigger(braids::ENV_SEGMENT_ATTACK);
+                v->amp_env.gate_on();
+                v->filt_env.gate_on();
             } else {
                 /* Note On with velocity 0 = Note Off */
                 int vi = find_voice_for_note(inst, note);
                 if (vi >= 0) {
                     inst->voices[vi].gate = 0;
-                    inst->voices[vi].envelope.Trigger(braids::ENV_SEGMENT_DECAY);
+                    inst->voices[vi].amp_env.gate_off();
+                    inst->voices[vi].filt_env.gate_off();
                 }
             }
             break;
@@ -522,7 +623,8 @@ static void v2_on_midi(void *instance, const uint8_t *msg, int len, int source) 
                 int vi = find_voice_for_note(inst, note);
                 if (vi >= 0) {
                     inst->voices[vi].gate = 0;
-                    inst->voices[vi].envelope.Trigger(braids::ENV_SEGMENT_DECAY);
+                    inst->voices[vi].amp_env.gate_off();
+                    inst->voices[vi].filt_env.gate_off();
                 }
             }
             break;
@@ -601,6 +703,13 @@ static void v2_set_param(void *instance, const char *key, const char *val) {
     if (strcmp(key, "preset") == 0) {
         int idx = atoi(val);
         if (idx >= 0 && idx < inst->preset_count) {
+            /* Kill all active voices to avoid hanging notes with mismatched params */
+            for (int i = 0; i < MAX_VOICES; i++) {
+                inst->voices[i].active = 0;
+                inst->voices[i].gate = 0;
+                inst->voices[i].amp_env.init();
+                inst->voices[i].filt_env.init();
+            }
             inst->current_preset = idx;
             v2_apply_preset(inst, idx);
         }
@@ -682,15 +791,15 @@ static int v2_get_param(void *instance, const char *key, char *buf, int buf_len)
                     "\"count_param\":\"preset_count\","
                     "\"name_param\":\"preset_name\","
                     "\"children\":\"main\","
-                    "\"knobs\":[\"engine\",\"timbre\",\"color\",\"attack\",\"decay\",\"cutoff\",\"resonance\",\"octave_transpose\"],"
+                    "\"knobs\":[\"engine\",\"timbre\",\"color\",\"attack\",\"decay\",\"sustain\",\"cutoff\",\"filt_env\"],"
                     "\"params\":[]"
                 "},"
                 "\"main\":{"
                     "\"children\":null,"
-                    "\"knobs\":[\"engine\",\"timbre\",\"color\",\"attack\",\"decay\",\"cutoff\",\"resonance\",\"octave_transpose\"],"
+                    "\"knobs\":[\"engine\",\"timbre\",\"color\",\"attack\",\"decay\",\"sustain\",\"cutoff\",\"filt_env\"],"
                     "\"params\":["
                         "{\"level\":\"oscillator\",\"label\":\"Oscillator\"},"
-                        "{\"level\":\"envelope\",\"label\":\"Envelope\"},"
+                        "{\"level\":\"envelope\",\"label\":\"Amp Envelope\"},"
                         "{\"level\":\"filter\",\"label\":\"Filter\"},"
                         "{\"level\":\"global\",\"label\":\"Global\"}"
                     "]"
@@ -702,13 +811,13 @@ static int v2_get_param(void *instance, const char *key, char *buf, int buf_len)
                 "},"
                 "\"envelope\":{"
                     "\"children\":null,"
-                    "\"knobs\":[\"attack\",\"decay\"],"
-                    "\"params\":[\"attack\",\"decay\"]"
+                    "\"knobs\":[\"attack\",\"decay\",\"sustain\",\"release\"],"
+                    "\"params\":[\"attack\",\"decay\",\"sustain\",\"release\"]"
                 "},"
                 "\"filter\":{"
                     "\"children\":null,"
-                    "\"knobs\":[\"cutoff\",\"resonance\"],"
-                    "\"params\":[\"cutoff\",\"resonance\"]"
+                    "\"knobs\":[\"cutoff\",\"resonance\",\"filt_env\",\"f_attack\",\"f_decay\",\"f_sustain\",\"f_release\"],"
+                    "\"params\":[\"cutoff\",\"resonance\",\"filt_env\",\"f_attack\",\"f_decay\",\"f_sustain\",\"f_release\"]"
                 "},"
                 "\"global\":{"
                     "\"children\":null,"
@@ -789,9 +898,12 @@ static void v2_render_block(void *instance, int16_t *out_interleaved_lr, int fra
         return;
     }
 
-    float gain = inst->params[PARAM_VOLUME];
+    float gain = inst->params[PARAM_VOLUME] / (float)MAX_VOICES;
     float fm_amount = inst->params[PARAM_FM];
-    int use_filter = (inst->params[PARAM_CUTOFF] < 0.99f || inst->params[PARAM_RESONANCE] > 0.01f);
+    float base_cutoff = inst->params[PARAM_CUTOFF];
+    float filt_env_amount = inst->params[PARAM_FILT_ENV];
+    int use_filter = (base_cutoff < 0.99f || inst->params[PARAM_RESONANCE] > 0.01f
+                      || filt_env_amount > 0.01f);
 
     /* Clear output */
     memset(out_interleaved_lr, 0, frames * 4);
@@ -825,21 +937,26 @@ static void v2_render_block(void *instance, int16_t *out_interleaved_lr, int fra
 
             /* Apply envelope and mix to output */
             for (int s = 0; s < block_size; s++) {
-                /* Render envelope (AR envelope) */
-                uint16_t env_val = v->envelope.Render();
+                /* Process ADSR envelopes */
+                float amp = v->amp_env.process();
+                float filt_val = v->filt_env.process();
 
-                /* Check if envelope has finished (decay complete) */
-                if (!v->gate && v->envelope.segment() == braids::ENV_SEGMENT_DEAD) {
+                /* Check if amplitude envelope has finished */
+                if (!v->gate && !v->amp_env.is_active()) {
                     v->active = 0;
                     break;
                 }
 
-                /* Apply envelope to oscillator output */
+                /* Apply amplitude envelope to oscillator output */
                 int32_t sample = v->osc_buffer[s];
-                sample = (sample * (int32_t)env_val) >> 16;
+                sample = (int32_t)(sample * amp);
 
-                /* Apply SVF filter if enabled */
+                /* Apply SVF filter with envelope modulation */
                 if (use_filter) {
+                    float mod_cutoff = base_cutoff + filt_val * filt_env_amount;
+                    if (mod_cutoff > 1.0f) mod_cutoff = 1.0f;
+                    int16_t cutoff_freq = (int16_t)(mod_cutoff * 127.0f) << 7;
+                    v->svf.set_frequency(cutoff_freq);
                     sample = v->svf.Process(sample);
                 }
 

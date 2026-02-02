@@ -1,0 +1,20 @@
+{
+  "name": "Bells",
+  "engine": "BELL",
+  "timbre": 0.5,
+  "color": 0.5,
+  "attack": 0.0,
+  "decay": 0.6,
+  "sustain": 0.0,
+  "release": 0.5,
+  "fm": 0.0,
+  "cutoff": 0.6,
+  "resonance": 0.05,
+  "filt_env": 0.3,
+  "f_attack": 0.0,
+  "f_decay": 0.5,
+  "f_sustain": 0.0,
+  "f_release": 0.4,
+  "volume": 0.7,
+  "octave_transpose": 1
+}

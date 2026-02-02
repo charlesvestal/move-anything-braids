@@ -1,0 +1,20 @@
+{
+  "name": "Bass",
+  "engine": "SAW<",
+  "timbre": 0.7,
+  "color": 0.3,
+  "attack": 0.0,
+  "decay": 0.4,
+  "sustain": 0.6,
+  "release": 0.15,
+  "fm": 0.0,
+  "cutoff": 0.15,
+  "resonance": 0.3,
+  "filt_env": 0.5,
+  "f_attack": 0.0,
+  "f_decay": 0.3,
+  "f_sustain": 0.1,
+  "f_release": 0.15,
+  "volume": 0.8,
+  "octave_transpose": -1
+}
