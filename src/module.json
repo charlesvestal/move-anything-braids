@@ -2,7 +2,7 @@
   "id": "braids",
   "name": "Braids",
   "abbrev": "BR",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Macro oscillator with 47 synthesis algorithms, based on Mutable Instruments Braids",
   "author": "Emilie Gillet (port: charlesvestal)",
   "license": "MIT",

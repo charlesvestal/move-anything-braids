@@ -863,7 +863,14 @@ static int v2_get_param(void *instance, const char *key, char *buf, int buf_len)
             "{\"key\":\"engine\",\"name\":\"Algorithm\",\"type\":\"enum\",\"options\":[");
         for (int i = 0; i < NUM_SHAPES && offset < buf_len - 50; i++) {
             if (i > 0) offset += snprintf(buf + offset, buf_len - offset, ",");
-            offset += snprintf(buf + offset, buf_len - offset, "\"%s\"", g_shape_names[i]);
+            /* Write JSON-escaped string (backslash needs escaping) */
+            buf[offset++] = '"';
+            for (const char *p = g_shape_names[i]; *p && offset < buf_len - 10; p++) {
+                if (*p == '\\' || *p == '"') buf[offset++] = '\\';
+                buf[offset++] = *p;
+            }
+            buf[offset++] = '"';
+            buf[offset] = '\0';
         }
         offset += snprintf(buf + offset, buf_len - offset, "]}");
 
