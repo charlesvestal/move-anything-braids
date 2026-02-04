@@ -2,7 +2,7 @@
   "id": "braids",
   "name": "Braids",
   "abbrev": "BR",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Macro oscillator with 47 synthesis algorithms, based on Mutable Instruments Braids",
   "author": "Emilie Gillet (port: charlesvestal)",
   "license": "MIT",
@@ -17,6 +17,15 @@
     "aftertouch": false,
     "chainable": true,
     "component_type": "sound_generator",
+    "ui_hierarchy": {
+      "levels": {
+        "root": {
+          "name": "Braids",
+          "params": ["engine", "timbre", "color", "attack", "decay", "sustain", "release", "cutoff", "resonance", "filt_env", "fm", "volume", "octave_transpose"],
+          "knobs": ["engine", "timbre", "color", "attack", "decay", "sustain", "release", "cutoff"]
+        }
+      }
+    },
     "chain_params": [
       {"key": "engine", "name": "Algorithm", "type": "enum", "default": "CSAW", "options": ["CSAW","MORPH","/\\-_","SINE^","BUZZ","SQR<","SAW<","SQsync","SWsync","3xSAW","3xSQR","3xTRI","3xSIN","3xRNG","SWARM","COMB","TOY","ZLPF","ZPKF","ZBPF","ZHPF","VOSIM","VOWL","V.FOF","HARM","FM","FBFM","WTFM","PLUK","BOWD","BLOW","FLUT","BELL","DRUM","KICK","CYMB","SNAR","WTBL","WMAP","WLIN","WTx4","NOIS","TWNQ","CLKN","GRN","PART","QPSK"]},
       {"key": "timbre", "name": "Timbre", "type": "float", "min": 0.0, "max": 1.0, "default": 0.5, "step": 0.02},
