@@ -702,7 +702,7 @@ static void v2_set_param(void *instance, const char *key, const char *val) {
     /* Preset selection */
     if (strcmp(key, "preset") == 0) {
         int idx = atoi(val);
-        if (idx >= 0 && idx < inst->preset_count) {
+        if (idx >= 0 && idx < inst->preset_count && idx != inst->current_preset) {
             /* Kill all active voices to avoid hanging notes with mismatched params */
             for (int i = 0; i < MAX_VOICES; i++) {
                 inst->voices[i].active = 0;
