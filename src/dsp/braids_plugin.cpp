@@ -872,13 +872,18 @@ static int v2_get_param(void *instance, const char *key, char *buf, int buf_len)
         /* Remaining params */
         for (int i = 0; i < (int)PARAM_DEF_COUNT(g_shadow_params) && offset < buf_len - 100; i++) {
             if (strcmp(g_shadow_params[i].key, "engine") == 0) continue;  /* Already handled */
+            /* Float params with 0-1 range get percentage display */
+            int is_pct = (g_shadow_params[i].type == PARAM_TYPE_FLOAT &&
+                          g_shadow_params[i].min_val == 0.0f &&
+                          g_shadow_params[i].max_val == 1.0f);
             offset += snprintf(buf + offset, buf_len - offset,
-                ",{\"key\":\"%s\",\"name\":\"%s\",\"type\":\"%s\",\"min\":%g,\"max\":%g}",
+                ",{\"key\":\"%s\",\"name\":\"%s\",\"type\":\"%s\",\"min\":%g,\"max\":%g%s}",
                 g_shadow_params[i].key,
                 g_shadow_params[i].name[0] ? g_shadow_params[i].name : g_shadow_params[i].key,
                 g_shadow_params[i].type == PARAM_TYPE_INT ? "int" : "float",
                 g_shadow_params[i].min_val,
-                g_shadow_params[i].max_val);
+                g_shadow_params[i].max_val,
+                is_pct ? ",\"unit\":\"%\",\"display_format\":\"%.0f\"" : "");
         }
 
         /* Octave transpose */
