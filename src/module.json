@@ -83,7 +83,8 @@
               "min": 0.0,
               "max": 1.0,
               "default": 0.5,
-              "step": 0.02
+              "step": 0.02,
+              "unit": "%"
             },
             {
               "key": "color",
@@ -92,7 +93,8 @@
               "min": 0.0,
               "max": 1.0,
               "default": 0.5,
-              "step": 0.02
+              "step": 0.02,
+              "unit": "%"
             },
             {
               "key": "attack",
@@ -101,7 +103,8 @@
               "min": 0.0,
               "max": 1.0,
               "default": 0.0,
-              "step": 0.02
+              "step": 0.02,
+              "unit": "%"
             },
             {
               "key": "decay",
@@ -110,7 +113,8 @@
               "min": 0.0,
               "max": 1.0,
               "default": 0.5,
-              "step": 0.02
+              "step": 0.02,
+              "unit": "%"
             },
             {
               "key": "sustain",
@@ -119,7 +123,8 @@
               "min": 0.0,
               "max": 1.0,
               "default": 1.0,
-              "step": 0.02
+              "step": 0.02,
+              "unit": "%"
             },
             {
               "key": "release",
@@ -128,7 +133,8 @@
               "min": 0.0,
               "max": 1.0,
               "default": 0.3,
-              "step": 0.02
+              "step": 0.02,
+              "unit": "%"
             },
             {
               "key": "cutoff",
@@ -137,7 +143,8 @@
               "min": 0.0,
               "max": 1.0,
               "default": 1.0,
-              "step": 0.02
+              "step": 0.02,
+              "unit": "%"
             },
             {
               "key": "resonance",
@@ -146,7 +153,8 @@
               "min": 0.0,
               "max": 1.0,
               "default": 0.0,
-              "step": 0.02
+              "step": 0.02,
+              "unit": "%"
             },
             {
               "key": "filt_env",
@@ -155,7 +163,8 @@
               "min": 0.0,
               "max": 1.0,
               "default": 0.0,
-              "step": 0.02
+              "step": 0.02,
+              "unit": "%"
             },
             {
               "key": "fm",
@@ -164,7 +173,8 @@
               "min": 0.0,
               "max": 1.0,
               "default": 0.0,
-              "step": 0.02
+              "step": 0.02,
+              "unit": "%"
             },
             {
               "key": "volume",
@@ -173,7 +183,8 @@
               "min": 0.0,
               "max": 1.0,
               "default": 0.7,
-              "step": 0.02
+              "step": 0.02,
+              "unit": "%"
             },
             {
               "key": "octave_transpose",
@@ -190,7 +201,8 @@
               "min": 0.0,
               "max": 1.0,
               "default": 0.0,
-              "step": 0.02
+              "step": 0.02,
+              "unit": "%"
             },
             {
               "key": "f_decay",
@@ -199,7 +211,8 @@
               "min": 0.0,
               "max": 1.0,
               "default": 0.3,
-              "step": 0.02
+              "step": 0.02,
+              "unit": "%"
             },
             {
               "key": "f_sustain",
@@ -208,7 +221,8 @@
               "min": 0.0,
               "max": 1.0,
               "default": 0.0,
-              "step": 0.02
+              "step": 0.02,
+              "unit": "%"
             },
             {
               "key": "f_release",
@@ -217,7 +231,8 @@
               "min": 0.0,
               "max": 1.0,
               "default": 0.3,
-              "step": 0.02
+              "step": 0.02,
+              "unit": "%"
             }
           ],
           "knobs": [
