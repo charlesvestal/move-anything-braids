@@ -92,6 +92,7 @@ ${CROSS_PREFIX}g++ -shared \
 # Copy files to dist (use cat to avoid ExtFS deallocation issues with Docker)
 echo "Packaging..."
 cat src/module.json > dist/braids/module.json
+[ -f src/help.json ] && cat src/help.json > dist/braids/help.json
 cat build/dsp.so > dist/braids/dsp.so
 chmod +x dist/braids/dsp.so
 
